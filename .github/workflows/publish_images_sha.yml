@@ -1,0 +1,22 @@
+name: Publish Images Using Commit Hash
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Publish Images
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Publish Postgres Backup Image
+      uses: Ferlab-Ste-Justine/action-push-image@master
+      with:
+        username: chusj
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        image: chusj/postgres-backup
+        tag_source: sha
+        location: postgres
+        dockerfile: postgres/Dockerfile
