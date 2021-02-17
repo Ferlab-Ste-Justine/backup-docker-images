@@ -14,9 +14,9 @@ jobs:
     - name: Publish Postgres Backup Image
       uses: Ferlab-Ste-Justine/action-push-image@master
       with:
-        username: chusj
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
-        image: chusj/postgres-backup
+        username: ${{ secrets.FERLAB_DOCKER_HUB_USER }}
+        password: ${{ secrets.FERLAB_DOCKER_HUB_TOKEN }}
+        image: ferlabcrsj/postgres-backup
         tag_source: sha
         location: postgres
         dockerfile: postgres/Dockerfile
