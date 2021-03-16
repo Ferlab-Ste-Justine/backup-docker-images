@@ -16,7 +16,6 @@ def get_backup_file(
     dir='/opt'
 ):
     backup_path = os.path.join(dir, 'backup-{fn}.dump'.format(fn=iso_datetime))
-    os.chmod(pgpass_path, 0o600)
     cmd = "pg_dump > {backup_path}".format(
         backup_path=backup_path
     )
