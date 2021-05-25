@@ -1,8 +1,8 @@
 # About
 
-This image manages postgres databases backups in an s3 object store.
+This image manages postgres databases backups in an s3 object store. It also supports the restoration of the database state from the backup.
 
-It uses the **pg_dump** backup strategy.
+It uses the **pg_dump** backup strategy with the portable custom dump. It uses **pg_restore** to restore from the backup, using the **--no-owner** flag to set the owner of the restored resources to the current user.
 
 Other considered alternatives were a disk snapshot or a base tar filesystem backup combined with WAL backups.
 
@@ -27,7 +27,17 @@ The image has two scripts used for separate pursuposes (they are intended to run
     - S3_REGION: Region to use
     - S3_BACKUP_MAX_AGE: Maximum age (in seconds) that remaining backups can have. Any backups that are older than that will be deleted.
 
+- /opt/restore.py: Restore the postgres database from a backup in s3. It takes the follow environment variables as input:
+    - S3_ENDPOINT: Endpoint of the S3 object store that stores the backups
+    - S3_BUCKET: S3 bucket that the backup files are stored in
+    - S3_ACCESS_KEY: Access key used to access the s3 object store
+    - S3_SECRET_KEY: Secret key to authentify against the s3 object store
+    - S3_REGION: Region to use
+    - S3_DUMP_OBJECT: Name of the dump to used. If left blank, the latest dump will be used.
+
 # Known Limitation
+
+## No Verification For Number of Backups Held
 
 Technically, you may find yourself without backups if:
   - You run both scripts
