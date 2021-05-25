@@ -16,7 +16,7 @@ def get_backup_file(
     dir='/opt'
 ):
     backup_path = os.path.join(dir, 'backup-{fn}.dump'.format(fn=iso_datetime))
-    cmd = "pg_dump > {backup_path}".format(
+    cmd = "pg_dump -Fc > {backup_path}".format(
         backup_path=backup_path
     )
     subprocess.run(cmd, shell=True, check=True)
