@@ -5,6 +5,8 @@ import os
 import boto3
 from botocore.client import Config
 
+import cmd_utils
+
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
 S3_BUCKET = os.environ.get('S3_BUCKET')
 S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
@@ -16,9 +18,7 @@ def get_backup_file(
     dir='/opt'
 ):
     backup_path = os.path.join(dir, 'backup-{fn}.dump'.format(fn=iso_datetime))
-    cmd = "etcdctl snapshot save {backup_path}".format(
-        backup_path=backup_path
-    )
+    cmd = cmd_utils.get_backup_cmd(backup_path)
     subprocess.run(cmd, shell=True, check=True)
     return backup_path
 

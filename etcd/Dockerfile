@@ -12,4 +12,4 @@ RUN wget -O /opt/etcd-${ETCD_VERSION}-linux-amd64.tar.gz https://storage.googlea
 
 RUN pip3 install boto3===1.16.49
 
-COPY backup.py prune-backups.py /opt/
+COPY etcd/cmd_utils.py common/backup.py common/prune-backups.py /opt/
