@@ -1,0 +1,25 @@
+#Minikube dev environment.
+#Dependencies:
+#  - minikube runs directly on the host machine (driver=none)
+#  - A docker registry runs locally on port 5000 (see ./registry.sh)
+#  - You have built and pushed the image locally as localhost:5000/mongodb-backup:test (see ./image.sh)
+#Howto:
+#Type the following to launch the pod: kubectl apply -f dev.yml
+#Type the following to ssh into the pod: kubectl exec -it mongodb-dev -c mongodb-dev-backup -- bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongodb-dev
+spec:
+  containers:
+  - name: mongodb-dev-database
+    image: mongo:4.4.18
+  - name: mongodb-dev-backup
+    image: localhost:5000/mongodb-backup:test
+    imagePullPolicy: Always
+    command: ["sleep", "infinity"]
+    env:
+    - name: MONGO_URL
+      value: mongodb://localhost:27017
+    - name: MONGO_DATABASE
+      value: testdb

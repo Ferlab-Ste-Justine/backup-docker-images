@@ -6,6 +6,8 @@ import re
 import boto3
 from botocore.client import Config
 
+import cmd_utils
+
 S3_ENDPOINT = os.environ.get('S3_ENDPOINT')
 S3_BUCKET = os.environ.get('S3_BUCKET')
 S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')
@@ -38,13 +40,9 @@ def download_dump(
     s3.Bucket(s3_bucket).download_file(s3_object, dump_path)
         
 def restore_from_dump(
-    dump_path,
-    database
+    dump_path
 ):
-    cmd = "pg_restore --no-owner -d {database} {dump_path}".format(
-        dump_path=dump_path,
-        database=database
-    )
+    cmd = cmd_utils.get_restore_cmd(dump_path)
     subprocess.run(cmd, shell=True, check=True)
     
 if __name__ == "__main__":
@@ -63,6 +61,5 @@ if __name__ == "__main__":
         s3
     )
     restore_from_dump(
-        "opt/backup.dump",
-        os.environ.get('PGDATABASE')
+        "opt/backup.dump"
     )
