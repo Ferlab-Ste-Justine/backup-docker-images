@@ -2,6 +2,7 @@ import datetime
 import subprocess
 import os
 import re
+import time
 
 import boto3
 from botocore.client import Config
@@ -29,6 +30,7 @@ def download_dump(
     s3_bucket,
     s3
 ):
+    print("Downloading dump ...")
     if s3_object == "":
         objs = s3.Bucket(s3_bucket).objects.all()
         objs = sorted(objs, key=_get_obj_date, reverse=True)
@@ -42,10 +44,13 @@ def download_dump(
 def restore_from_dump(
     dump_path
 ):
+    print("Restoring from dump ...")
     cmd = cmd_utils.get_restore_cmd(dump_path)
     subprocess.run(cmd, shell=True, check=True)
     
 if __name__ == "__main__":
+    start = time.time()
+
     s3 = boto3.resource(
         's3',
         endpoint_url=S3_ENDPOINT,
@@ -63,3 +68,6 @@ if __name__ == "__main__":
     restore_from_dump(
         "opt/backup.dump"
     )
+
+    duration = (time.time() - start) / 60
+    print(f"\nThe script took {duration:.2f} minute(s) to run.")

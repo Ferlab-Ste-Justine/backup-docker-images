@@ -1,6 +1,7 @@
 import datetime
 import subprocess
 import os
+import time
 
 import boto3
 from botocore.client import Config
@@ -17,6 +18,7 @@ def get_backup_file(
     iso_datetime, 
     dir='/opt'
 ):
+    print("Getting backup file ...")
     backup_path = os.path.join(dir, 'backup-{fn}.dump'.format(fn=iso_datetime))
     cmd = cmd_utils.get_backup_cmd(backup_path)
     subprocess.run(cmd, shell=True, check=True)
@@ -27,9 +29,12 @@ def send_to_s3(
     s3_bucket,
     s3
 ):
+    print("Sending to S3 ...")
     s3.Bucket(s3_bucket).upload_file(backup_path, os.path.basename(backup_path))
 
 if __name__ == "__main__":
+    start = time.time()
+
     backup_path = get_backup_file(
         datetime.datetime.now().isoformat(),
         '/opt'
@@ -47,3 +52,6 @@ if __name__ == "__main__":
         S3_BUCKET,
         s3
     )
+
+    duration = (time.time() - start) / 60
+    print(f"\nThe script took {duration:.2f} minute(s) to run.")

@@ -1,6 +1,8 @@
 import datetime
 import re
 import os
+import time
+
 import boto3
 from botocore.client import Config
 
@@ -16,6 +18,7 @@ def get_backup_list(
     s3,
     s3_bucket
 ):
+    print("Getting backup list ...")
     return s3.Bucket(s3_bucket).objects.all()
 
 #backup-2021-01-06T22:06:31.106555.dump
@@ -25,6 +28,7 @@ def filter_expired_objects(
     max_age,
     now_datetime
 ):
+    print("Filtering expired objects ...")
     def expired(obj):
         timestamp = datetime.datetime.fromisoformat(
             BACKUP_NAME_REGEX.search(obj.key).group('timestamp')
@@ -37,10 +41,13 @@ def delete_objects(
     s3_bucket,
     objects
 ):
+    print("Deleting objects ...")
     for obj in objects:
         s3.Object(s3_bucket, obj.key).delete()
 
 if __name__ == "__main__":
+    start = time.time()
+
     s3 = boto3.resource(
         's3',
         endpoint_url=S3_ENDPOINT,
@@ -63,3 +70,6 @@ if __name__ == "__main__":
         S3_BUCKET,
         expired_objects
     )
+
+    duration = (time.time() - start) / 60
+    print(f"\nThe script took {duration:.2f} minute(s) to run.")
