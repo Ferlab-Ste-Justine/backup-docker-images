@@ -63,7 +63,13 @@ def build_payload():
 
 def snapshot_name():
     timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
-    return f"backup-{timestamp}.dump"
+    safe = (
+        timestamp.lower()
+        .replace(":", "-")
+        .replace("+", "-")
+        .replace("/", "-")
+    )
+    return f"backup-{safe}.dump"
 
 
 def snapshot_url(endpoint: str, repository: str, snapshot: Optional[str] = None) -> str:
@@ -112,12 +118,31 @@ def ensure_repository(endpoint: str, repository: str, kwargs):
     response = requests.get(url, **kwargs)
     if response.status_code == 404:
         payload = repository_definition()
-        print(f"Snapshot repository '{repository}' missing. Creating it now.")
+        print(f"Snapshot repository '{repository}' missing. Creating it now.", flush=True)
         create = requests.put(url, json=payload, **kwargs)
-        create.raise_for_status()
+        if not create.ok:
+            print(
+                f"Failed to create snapshot repository '{repository}': "
+                f"{create.status_code} {create.text}",
+                file=sys.stderr,
+                flush=True,
+            )
+        try:
+            create.raise_for_status()
+        except requests.HTTPError:
+            raise
         return
 
-    response.raise_for_status()
+    if not response.ok:
+        print(
+            f"Snapshot repository probe failed with {response.status_code}: {response.text}",
+            file=sys.stderr,
+            flush=True,
+        )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError:
+        raise
 
 
 def main():
@@ -135,6 +160,12 @@ def main():
 
     print(f"Triggering snapshot '{name}' at {url}")
     response = requests.put(url, params=params, json=payload, **kwargs)
+    if not response.ok:
+        print(
+            f"Snapshot request failed with {response.status_code}: {response.text}",
+            file=sys.stderr,
+            flush=True,
+        )
     response.raise_for_status()
 
     result = response.json()
