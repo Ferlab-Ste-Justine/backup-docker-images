@@ -59,6 +59,16 @@ This is the generic pruning script shared with the other images. If you mirror t
 
 **Important**: Deleting snapshot objects directly from the repository will corrupt incremental snapshots. Prefer the OpenSearch `_snapshot/<repo>/<snapshot>` DELETE API or the repository cleanup API and use `S3_BACKUP_MAX_AGE` with caution.
 
+## /opt/prune_snapshots.py
+
+Deletes OpenSearch snapshots older than a retention window using the native `_snapshot` APIs, then calls `_snapshot/<repo>/_cleanup` to free orphaned blobs. Typical environment variables:
+
+- `OPENSEARCH_PRUNE_MAX_AGE_DAYS`: Age threshold in days (defaults to `60`).
+- `OPENSEARCH_PRUNE_MIN_SNAPSHOTS`: Minimum number of snapshots to keep regardless of age (defaults to `0`).
+- `OPENSEARCH_PRUNE_DRY_RUN`: Set to `true` to see which snapshots would be removed without actually deleting them.
+
+The script reuses the same TLS/basic-auth environment variables as `backup.py`/`restore.py`.
+
 ## /opt/restore.py
 
 Restores a snapshot using the OpenSearch API. If `OPENSEARCH_SNAPSHOT_NAME` is omitted, the script automatically restores the most recent snapshot in the repository (based on `end_time_in_millis`).
