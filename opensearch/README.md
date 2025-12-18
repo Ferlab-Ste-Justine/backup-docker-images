@@ -22,6 +22,8 @@ Unless mentioned otherwise, all scripts accept the following environment variabl
 - `OPENSEARCH_USERNAME` / `OPENSEARCH_PASSWORD`: Basic-auth credentials.
 - `OPENSEARCH_WAIT_FOR_COMPLETION`: Whether the API calls should block until completion (`true` by default).
 
+> **Note**: All boolean flags (`..._WAIT_FOR_COMPLETION`, `OPENSEARCH_PRUNE_DRY_RUN`, etc.) only accept the strings `true` or `false` (case-insensitive). Any other value will cause the scripts to exit with an error.
+
 ## /opt/backup.py
 
 Triggers a snapshot in the configured repository. The snapshot name uses the `backup-<timestamp>.dump` convention shared by the other images in this repo (for example `backup-2024-06-09T12:45:03.000000+00:00.dump`), so external tooling can reason about ordering.
@@ -68,6 +70,8 @@ Deletes OpenSearch snapshots older than a retention window using the native `_sn
 - `OPENSEARCH_PRUNE_DRY_RUN`: Set to `true` to see which snapshots would be removed without actually deleting them.
 
 The script reuses the same TLS/basic-auth environment variables as `backup.py`/`restore.py`.
+
+> **Note**: Boolean flags such as `OPENSEARCH_PRUNE_DRY_RUN` only accept the values `true` or `false` (case-insensitive). Any other value will cause the script to exit with an error.
 
 ## /opt/restore.py
 

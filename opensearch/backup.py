@@ -13,7 +13,14 @@ def env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
     if value is None:
         return default
-    return value.lower() in ("1", "true", "yes", "on")
+    normalized = value.strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise ValueError(
+        f"Invalid boolean for {name}: '{value}'. Expected 'true' or 'false'."
+    )
 
 
 def required_env(name: str) -> str:
