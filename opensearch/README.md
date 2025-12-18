@@ -57,7 +57,7 @@ docker run --rm \
   python /opt/backup.py
 ```
 
-## Snapshot pruning (`/opt/prune_snapshots.py`)
+## Snapshot pruning (`/opt/prune-snapshots.py`)
 
 Deletes OpenSearch snapshots older than a retention window using the native `_snapshot` APIs, then calls `_snapshot/<repo>/_cleanup` to free orphaned blobs. Typical environment variables:
 
