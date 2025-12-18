@@ -57,13 +57,7 @@ docker run --rm \
   python /opt/backup.py
 ```
 
-## /opt/prune-backups.py
-
-This is the generic pruning script shared with the other images. If you mirror the OpenSearch snapshot state into a secondary object store or log file using the same naming scheme, you can delete aged artifacts by setting `S3_ENDPOINT`, `S3_BUCKET`, etc., exactly like the other images.
-
-**Important**: Deleting snapshot objects directly from the repository will corrupt incremental snapshots. Prefer the OpenSearch `_snapshot/<repo>/<snapshot>` DELETE API or the repository cleanup API and use `S3_BACKUP_MAX_AGE` with caution.
-
-## /opt/prune_snapshots.py
+## Snapshot pruning (`/opt/prune_snapshots.py`)
 
 Deletes OpenSearch snapshots older than a retention window using the native `_snapshot` APIs, then calls `_snapshot/<repo>/_cleanup` to free orphaned blobs. Typical environment variables:
 
