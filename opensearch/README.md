@@ -28,17 +28,19 @@ Unless mentioned otherwise, all scripts accept the following environment variabl
 
 Triggers a snapshot in the configured repository. The snapshot name uses the `backup-<timestamp>.dump` convention shared by the other images in this repo (for example `backup-2024-06-09T12:45:03.000000+00:00.dump`), so external tooling can reason about ordering.
 
+[Reference: OpenSearch snapshot API](https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/index/)
+
 Additional environment variables:
 
-- `OPENSEARCH_SNAPSHOT_INDICES`: Comma-separated list of indices to include. Leave empty to snapshot everything.
-- `OPENSEARCH_SNAPSHOT_INCLUDE_GLOBAL_STATE`: Defaults to `true`.
-- `OPENSEARCH_SNAPSHOT_IGNORE_UNAVAILABLE`: Defaults to `false`.
-- `OPENSEARCH_SNAPSHOT_PARTIAL`: Defaults to `false`.
-- `OPENSEARCH_SNAPSHOT_METADATA`: Optional JSON object injected into the snapshot metadata.
-- `OPENSEARCH_REPOSITORY_BUCKET`, `OPENSEARCH_REPOSITORY_ENDPOINT`, `OPENSEARCH_REPOSITORY_REGION`: Required only if the repository does not exist yet; the script will create it automatically when missing.
-- `OPENSEARCH_REPOSITORY_PROTOCOL`: Optional protocol override (defaults to `https`).
-- `OPENSEARCH_REPOSITORY_BASE_PATH`: Optional base path within the bucket.
-- `OPENSEARCH_REPOSITORY_PATH_STYLE_ACCESS`: Defaults to `true`.
+- `OPENSEARCH_SNAPSHOT_INDICES`: Comma-separated list of indices to include in the snapshot (empty = all indices).
+- `OPENSEARCH_SNAPSHOT_INCLUDE_GLOBAL_STATE`: Whether to include templates/cluster settings (`true` mirrors `_snapshot`’s `include_global_state`).
+- `OPENSEARCH_SNAPSHOT_IGNORE_UNAVAILABLE`: Skip missing/closed indices instead of failing (`false` by default).
+- `OPENSEARCH_SNAPSHOT_PARTIAL`: Allow partial snapshots when some shards fail (`false` by default).
+- `OPENSEARCH_SNAPSHOT_METADATA`: Optional JSON blob stored as snapshot metadata (same contract as the OpenSearch API).
+- `OPENSEARCH_REPOSITORY_BUCKET`, `OPENSEARCH_REPOSITORY_ENDPOINT`, `OPENSEARCH_REPOSITORY_REGION`: S3 parameters used if the repository must be created automatically.
+- `OPENSEARCH_REPOSITORY_PROTOCOL`: Override the protocol in the repo definition (defaults to `https`).
+- `OPENSEARCH_REPOSITORY_BASE_PATH`: Prefix within the bucket for storing snapshots.
+- `OPENSEARCH_REPOSITORY_PATH_STYLE_ACCESS`: Toggle `path_style_access` in the repo settings (`true` by default).
 - `OPENSEARCH_REPOSITORY_CLIENT`: Name of the S3 client configured in the OpenSearch keystore (defaults to `default`).
 
 Example:
@@ -77,16 +79,18 @@ The script reuses the same TLS/basic-auth environment variables as `backup.py`/`
 
 Restores a snapshot using the OpenSearch API. If `OPENSEARCH_SNAPSHOT_NAME` is omitted, the script automatically restores the most recent snapshot in the repository (based on `end_time_in_millis`).
 
+[Reference: OpenSearch restore API](https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/index/)
+
 Additional environment variables:
 
-- `OPENSEARCH_SNAPSHOT_NAME`: Snapshot name to restore (optional).
-- `OPENSEARCH_RESTORE_INDICES`: Comma-separated list of indices to restore.
-- `OPENSEARCH_RESTORE_INCLUDE_GLOBAL_STATE`: Defaults to `true`.
-- `OPENSEARCH_RESTORE_IGNORE_UNAVAILABLE`: Defaults to `false`.
-- `OPENSEARCH_RESTORE_PARTIAL`: Defaults to `false`.
-- `OPENSEARCH_RESTORE_RENAME_PATTERN`: Optional regex rename pattern.
-- `OPENSEARCH_RESTORE_RENAME_REPLACEMENT`: Optional rename replacement.
-- `OPENSEARCH_RESTORE_INDEX_SETTINGS`: JSON object merged into the restored indices.
+- `OPENSEARCH_SNAPSHOT_NAME`: Snapshot to restore (omit to restore the most recent one).
+- `OPENSEARCH_RESTORE_INDICES`: Comma-separated list of indices/data streams to restore (empty = whatever the snapshot contains).
+- `OPENSEARCH_RESTORE_INCLUDE_GLOBAL_STATE`: Include global state (templates/cluster settings) as part of the restore (`true` by default).
+- `OPENSEARCH_RESTORE_IGNORE_UNAVAILABLE`: Skip indices that are missing rather than failing the restore (`false` by default).
+- `OPENSEARCH_RESTORE_PARTIAL`: Allow partial restores when some shards fail (`false` by default).
+- `OPENSEARCH_RESTORE_RENAME_PATTERN`: Regex applied to source index names (same as `_restore`’s `rename_pattern`).
+- `OPENSEARCH_RESTORE_RENAME_REPLACEMENT`: Replacement string used with the rename pattern.
+- `OPENSEARCH_RESTORE_INDEX_SETTINGS`: JSON object merged into the restored indices’ settings (for example to change `number_of_replicas`).
 
 Example:
 
