@@ -24,9 +24,9 @@ Unless mentioned otherwise, all scripts accept the following environment variabl
 
 > **Note**: All boolean flags (`..._WAIT_FOR_COMPLETION`, `OPENSEARCH_PRUNE_DRY_RUN`, etc.) only accept the strings `true` or `false` (case-insensitive). Any other value will cause the scripts to exit with an error.
 
-## /opt/backup.py
+## Snapshot creation (`/opt/backup.py`)
 
-Triggers a snapshot in the configured repository. The snapshot name uses the `backup-<timestamp>.dump` convention shared by the other images in this repo (for example `backup-2024-06-09T12:45:03.000000+00:00.dump`), so external tooling can reason about ordering.
+Triggers a snapshot in the configured repository. The snapshot name uses the `snapshot-<timestamp>.dump` convention shared by the other images in this repo (for example `snapshot-2024-06-09T12:45:03.000000+00:00.dump`), so external tooling can reason about ordering.
 
 [Reference: OpenSearch snapshot API](https://docs.opensearch.org/latest/tuning-your-cluster/availability-and-recovery/index/)
 
@@ -71,7 +71,7 @@ Deletes OpenSearch snapshots older than a retention window using the native `_sn
 - `OPENSEARCH_PRUNE_MIN_SNAPSHOTS`: Minimum number of snapshots to keep regardless of age (defaults to `0`).
 - `OPENSEARCH_PRUNE_DRY_RUN`: Set to `true` to see which snapshots would be removed without actually deleting them.
 
-The script reuses the same TLS/basic-auth environment variables as `backup.py`/`restore.py`.
+The script reuses the same TLS/basic-auth environment variables as the snapshot creation (`/opt/backup.py`) and restore scripts.
 
 > **Note**: Boolean flags such as `OPENSEARCH_PRUNE_DRY_RUN` only accept the values `true` or `false` (case-insensitive). Any other value will cause the script to exit with an error.
 
@@ -98,7 +98,7 @@ Example:
 docker run --rm \
   -e OPENSEARCH_ENDPOINT=https://opensearch:9200 \
   -e OPENSEARCH_SNAPSHOT_REPOSITORY=logs \
-  -e OPENSEARCH_SNAPSHOT_NAME=backup-2024-06-09T12:45:03.000000+00:00.dump \
+  -e OPENSEARCH_SNAPSHOT_NAME=snapshot-2024-06-09T12:45:03.000000+00:00.dump \
   -e OPENSEARCH_CLIENT_CERT=/secrets/admin.crt \
   -e OPENSEARCH_CLIENT_KEY=/secrets/admin.key \
   -e OPENSEARCH_CA_CERT=/secrets/ca.crt \

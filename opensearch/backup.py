@@ -35,7 +35,7 @@ def snapshot_name():
         .replace("+", "-")
         .replace("/", "-")
     )
-    return f"backup-{safe}.dump"
+    return f"snapshot-{safe}.dump"
 
 
 def snapshot_url(endpoint: str, repository: str, snapshot: Optional[str] = None) -> str:
