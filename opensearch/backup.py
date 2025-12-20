@@ -1,0 +1,145 @@
+import datetime
+import json
+import os
+import sys
+import time
+from typing import Optional
+from urllib.parse import quote
+
+import requests
+from utils import build_http_kwargs, env_bool, required_env
+
+
+def build_payload():
+    payload = {
+        "include_global_state": env_bool("OPENSEARCH_SNAPSHOT_INCLUDE_GLOBAL_STATE", True),
+        "ignore_unavailable": env_bool("OPENSEARCH_SNAPSHOT_IGNORE_UNAVAILABLE", False),
+        "partial": env_bool("OPENSEARCH_SNAPSHOT_PARTIAL", False),
+    }
+    indices = os.environ.get("OPENSEARCH_SNAPSHOT_INDICES", "").strip()
+    if indices:
+        payload["indices"] = indices
+
+    custom_metadata = os.environ.get("OPENSEARCH_SNAPSHOT_METADATA", "").strip()
+    if custom_metadata:
+        payload["metadata"] = json.loads(custom_metadata)
+
+    return payload
+
+
+def snapshot_name():
+    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    safe = (
+        timestamp.lower()
+        .replace(":", "-")
+        .replace("+", "-")
+        .replace("/", "-")
+    )
+    return f"snapshot-{safe}.dump"
+
+
+def snapshot_url(endpoint: str, repository: str, snapshot: Optional[str] = None) -> str:
+    url = f"{endpoint}/_snapshot/{quote(repository, safe='')}"
+    if snapshot:
+        url = f"{url}/{quote(snapshot, safe='')}"
+    return url
+
+
+def repository_definition():
+    bucket = os.environ.get("OPENSEARCH_REPOSITORY_BUCKET", "").strip()
+    endpoint = os.environ.get("OPENSEARCH_REPOSITORY_ENDPOINT", "").strip()
+    region = os.environ.get("OPENSEARCH_REPOSITORY_REGION", "").strip()
+
+    if not bucket or not endpoint or not region:
+        missing = [name for name, value in [
+            ("OPENSEARCH_REPOSITORY_BUCKET", bucket),
+            ("OPENSEARCH_REPOSITORY_ENDPOINT", endpoint),
+            ("OPENSEARCH_REPOSITORY_REGION", region),
+        ] if not value]
+        print(
+            "Repository is missing and the following variables must be provided to create it: "
+            + ", ".join(missing),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    settings = {
+        "bucket": bucket,
+        "endpoint": endpoint,
+        "region": region,
+        "protocol": os.environ.get("OPENSEARCH_REPOSITORY_PROTOCOL", "https"),
+        "path_style_access": env_bool("OPENSEARCH_REPOSITORY_PATH_STYLE_ACCESS", True),
+        "client": os.environ.get("OPENSEARCH_REPOSITORY_CLIENT", "default"),
+    }
+
+    base_path = os.environ.get("OPENSEARCH_REPOSITORY_BASE_PATH", "").strip()
+    if base_path:
+        settings["base_path"] = base_path
+
+    return {"type": "s3", "settings": settings}
+
+
+def ensure_repository(endpoint: str, repository: str, kwargs):
+    url = snapshot_url(endpoint, repository)
+    response = requests.get(url, **kwargs)
+    if response.status_code == 404:
+        payload = repository_definition()
+        print(f"Snapshot repository '{repository}' missing. Creating it now.", flush=True)
+        create = requests.put(url, json=payload, **kwargs)
+        if not create.ok:
+            print(
+                f"Failed to create snapshot repository '{repository}': "
+                f"{create.status_code} {create.text}",
+                file=sys.stderr,
+                flush=True,
+            )
+        try:
+            create.raise_for_status()
+        except requests.HTTPError:
+            raise
+        return
+
+    if not response.ok:
+        print(
+            f"Snapshot repository probe failed with {response.status_code}: {response.text}",
+            file=sys.stderr,
+            flush=True,
+        )
+    try:
+        response.raise_for_status()
+    except requests.HTTPError:
+        raise
+
+
+def main():
+    start = time.time()
+    endpoint = required_env("OPENSEARCH_ENDPOINT").rstrip("/")
+    repository = required_env("OPENSEARCH_SNAPSHOT_REPOSITORY")
+    wait_for_completion = env_bool("OPENSEARCH_WAIT_FOR_COMPLETION", True)
+    kwargs = build_http_kwargs()
+
+    ensure_repository(endpoint, repository, kwargs)
+    name = snapshot_name()
+    url = snapshot_url(endpoint, repository, name)
+    params = {"wait_for_completion": str(wait_for_completion).lower()}
+    payload = build_payload()
+
+    print(f"Triggering snapshot '{name}' at {url}")
+    response = requests.put(url, params=params, json=payload, **kwargs)
+    if not response.ok:
+        print(
+            f"Snapshot request failed with {response.status_code}: {response.text}",
+            file=sys.stderr,
+            flush=True,
+        )
+    response.raise_for_status()
+
+    result = response.json()
+    print(json.dumps(result, indent=2))
+
+    duration = (time.time() - start) / 60
+    print(f"\nThe script took {duration:.2f} minute(s) to run.")
+
+
+if __name__ == "__main__":
+    main()
