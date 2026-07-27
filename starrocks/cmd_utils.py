@@ -33,7 +33,7 @@ def create_repository(conn):
     cursor = conn.cursor()
     try:
         cursor.execute(
-            f"CREATE REPOSITORY sr_backup WITHOUT BROKER "
+            f"CREATE REPOSITORY sr_backup WITH BROKER "
             f"ON LOCATION 's3://{SR_S3_BUCKET}/backups' "
             f"PROPERTIES('aws.s3.use_instance_profile'='true','aws.s3.region'='{SR_S3_REGION}')"
         )
