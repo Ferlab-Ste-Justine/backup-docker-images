@@ -35,7 +35,7 @@ def create_repository(conn):
         cursor.execute(
             f"CREATE REPOSITORY sr_backup WITH BROKER "
             f"ON LOCATION 's3://{SR_S3_BUCKET}/backups' "
-            f"PROPERTIES('aws.s3.use_instance_profile'='true','aws.s3.region'='{SR_S3_REGION}')"
+            f"PROPERTIES('aws.s3.use_aws_sdk_default_behavior'='true','aws.s3.region'='{SR_S3_REGION}')"
         )
     except mysql.connector.Error as e:
         if 'already exist' in str(e).lower():
