@@ -9,6 +9,8 @@ SR_USER = os.environ.get('SR_USER', 'root')
 SR_PASSWORD = os.environ.get('SR_PASSWORD')
 SR_S3_BUCKET = os.environ.get('SR_S3_BUCKET')
 SR_S3_REGION = os.environ.get('SR_S3_REGION', 'ca-central-1')
+SR_S3_ACCESS_KEY = os.environ.get('SR_S3_ACCESS_KEY')
+SR_S3_SECRET_KEY = os.environ.get('SR_S3_SECRET_KEY')
 SR_BACKUP_EXPIRE_HOURS = int(os.environ.get('SR_BACKUP_EXPIRE_HOURS', '336'))
 
 SYSTEM_DBS = {'information_schema', '_statistics_', 'starrocks', 'sys'}
@@ -32,12 +34,21 @@ def get_user_databases(conn):
     return dbs
 
 def create_repository(conn):
+    if SR_S3_ACCESS_KEY and SR_S3_SECRET_KEY:
+        props = (
+            f"'aws.s3.access_key'='{SR_S3_ACCESS_KEY}',"
+            f"'aws.s3.secret_key'='{SR_S3_SECRET_KEY}',"
+            f"'aws.s3.region'='{SR_S3_REGION}'"
+        )
+    else:
+        props = f"'aws.s3.use_aws_sdk_default_behavior'='true','aws.s3.region'='{SR_S3_REGION}'"
+
     cursor = conn.cursor()
     try:
         cursor.execute(
             f"CREATE REPOSITORY sr_backup WITH BROKER "
             f"ON LOCATION 's3://{SR_S3_BUCKET}/backups' "
-            f"PROPERTIES('aws.s3.use_aws_sdk_default_behavior'='true','aws.s3.region'='{SR_S3_REGION}')"
+            f"PROPERTIES({props})"
         )
     except mysql.connector.Error as e:
         if 'already exist' in str(e).lower():
