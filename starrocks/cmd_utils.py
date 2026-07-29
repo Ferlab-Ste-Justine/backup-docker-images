@@ -11,6 +11,7 @@ SR_S3_BUCKET = os.environ.get('SR_S3_BUCKET')
 SR_S3_REGION = os.environ.get('SR_S3_REGION', 'ca-central-1')
 SR_S3_ACCESS_KEY = os.environ.get('SR_S3_ACCESS_KEY')
 SR_S3_SECRET_KEY = os.environ.get('SR_S3_SECRET_KEY')
+SR_S3_ENDPOINT = os.environ.get('SR_S3_ENDPOINT')
 SR_BACKUP_EXPIRE_HOURS = int(os.environ.get('SR_BACKUP_EXPIRE_HOURS', '336'))
 
 SYSTEM_DBS = {'information_schema', '_statistics_', 'starrocks', 'sys'}
@@ -40,6 +41,9 @@ def create_repository(conn):
             f"'aws.s3.secret_key'='{SR_S3_SECRET_KEY}',"
             f"'aws.s3.region'='{SR_S3_REGION}'"
         )
+        if SR_S3_ENDPOINT:
+            props += f",'aws.s3.endpoint'='{SR_S3_ENDPOINT}'"
+            props += f",'aws.s3.enable_path_style_access'='true'"
     else:
         props = f"'aws.s3.use_aws_sdk_default_behavior'='true','aws.s3.region'='{SR_S3_REGION}'"
 
@@ -62,8 +66,7 @@ def submit_backup(conn, db, stamp):
     try:
         cursor.execute(
             f"BACKUP SNAPSHOT `{db}`.snap_{stamp} TO sr_backup "
-            f"PROPERTIES('timeout'='{BACKUP_TIMEOUT}','type'='FULL',"
-            f"'expired_time'='{SR_BACKUP_EXPIRE_HOURS} hours')"
+            f"PROPERTIES('timeout'='{BACKUP_TIMEOUT}','type'='FULL')"
         )
     except mysql.connector.Error as e:
         if 'already exist' in str(e).lower():
@@ -96,12 +99,23 @@ def poll_backup(conn, db, stamp):
         if waited > BACKUP_TIMEOUT:
             raise RuntimeError(f"Backup for {db}/snap_{stamp} timed out after {BACKUP_TIMEOUT}s")
 
+def get_snapshot_timestamp(conn, snapshot):
+    cursor = conn.cursor()
+    cursor.execute("SHOW SNAPSHOT ON sr_backup")
+    rows = cursor.fetchall()
+    cursor.close()
+    for row in rows:
+        if row[0] == snapshot:
+            return row[1]
+    raise RuntimeError(f"Snapshot '{snapshot}' not found in repository sr_backup")
+
 def submit_restore(conn, db, snapshot):
+    ts = get_snapshot_timestamp(conn, snapshot)
     cursor = conn.cursor()
     try:
         cursor.execute(
             f"RESTORE SNAPSHOT `{db}`.`{snapshot}` FROM sr_backup "
-            f"PROPERTIES('timeout'='{RESTORE_TIMEOUT}','backup_timestamp'='-1')"
+            f"PROPERTIES('timeout'='{RESTORE_TIMEOUT}','backup_timestamp'='{ts}')"
         )
     except mysql.connector.Error as e:
         if 'already exist' in str(e).lower():
