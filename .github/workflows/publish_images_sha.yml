@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        database: [mongodb, postgres, opensearch, starrocks]
+        component: [mongodb, postgres, opensearch, starrocks, openstack]
     steps:
     - uses: actions/checkout@v2
-    - name: Publish ${{ matrix.database }} Backup Image
+    - name: Publish ${{ matrix.component }} Backup Image
       uses: Ferlab-Ste-Justine/action-push-image@master
       with:
         username: ${{ secrets.FERLAB_DOCKER_HUB_USER }}
         password: ${{ secrets.FERLAB_DOCKER_HUB_TOKEN }}
-        image: ferlabcrsj/${{ matrix.database }}-backup
+        image: ferlabcrsj/${{ matrix.component }}-backup
         tag_source: sha
         location: .
-        dockerfile: ${{ matrix.database }}/Dockerfile
+        dockerfile: ${{ matrix.component }}/Dockerfile
