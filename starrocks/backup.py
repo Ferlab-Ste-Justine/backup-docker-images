@@ -15,9 +15,15 @@ if __name__ == "__main__":
     databases = cmd_utils.get_user_databases(conn)
     print(f"Databases to backup: {databases}", flush=True)
 
+    # submit all databases before polling any — StarRocks snapshot names are globally
+    # unique in the repository, so all databases must join the same in-progress snapshot
+    # before any one of them commits it
     for db in databases:
-        print(f"Backing up {db}...", flush=True)
+        print(f"Submitting backup for {db}...", flush=True)
         cmd_utils.submit_backup(conn, db, stamp)
+
+    for db in databases:
+        print(f"Polling {db}...", flush=True)
         cmd_utils.poll_backup(conn, db, stamp)
         print(f"{db} FINISHED.", flush=True)
 
