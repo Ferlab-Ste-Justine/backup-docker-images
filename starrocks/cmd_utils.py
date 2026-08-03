@@ -77,6 +77,10 @@ def submit_backup(conn, db, stamp):
 
 def poll_backup(conn, db, stamp):
     waited = 0
+    none_count = 0
+    # if the backup was silently rejected (e.g. blocked by a concurrent restore), SHOW BACKUP
+    # returns no rows for this snapshot — fail fast instead of looping until activeDeadlineSeconds
+    MAX_NONE_POLLS = 5
     while True:
         cursor = conn.cursor()
         cursor.execute(f"SHOW BACKUP FROM `{db}`")
@@ -87,12 +91,19 @@ def poll_backup(conn, db, stamp):
             (row[3] for row in rows if row[1] == f'snap_{stamp}'),
             None,
         )
-        print(f"{db}: {state or 'PENDING'}")
+        print(f"{db}: {state or 'NOT FOUND'}", flush=True)
 
         if state == 'FINISHED':
             return
         if state == 'CANCELLED':
             raise RuntimeError(f"Backup for {db}/snap_{stamp} was CANCELLED")
+        if state is None:
+            none_count += 1
+            if none_count >= MAX_NONE_POLLS:
+                raise RuntimeError(
+                    f"Backup for {db}/snap_{stamp} never appeared in SHOW BACKUP after "
+                    f"{none_count * POLL_INTERVAL}s — likely blocked by a concurrent operation"
+                )
 
         time.sleep(POLL_INTERVAL)
         waited += POLL_INTERVAL
