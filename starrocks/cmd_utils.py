@@ -69,11 +69,18 @@ def submit_backup(conn, db, stamp):
             f"PROPERTIES('timeout'='{BACKUP_TIMEOUT}','type'='FULL')"
         )
     except mysql.connector.Error as e:
-        if 'already exist' in str(e).lower():
-            print(f"{db}/snap_{stamp} already submitted, checking state.")
+        err = str(e)
+        if 'already exist' in err.lower():
+            print(f"{db}/snap_{stamp} already submitted, checking state.", flush=True)
+        elif 'cloud_native' in err.lower():
+            # shared-data tables cannot be backed up; skip this database
+            print(f"{db}: skipped (contains CLOUD_NATIVE tables unsupported by BACKUP)", flush=True)
+            cursor.close()
+            return False
         else:
             raise
     cursor.close()
+    return True
 
 def poll_backup(conn, db, stamp):
     waited = 0

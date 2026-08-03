@@ -18,11 +18,13 @@ if __name__ == "__main__":
     # submit all databases before polling any — StarRocks snapshot names are globally
     # unique in the repository, so all databases must join the same in-progress snapshot
     # before any one of them commits it
+    pending = []
     for db in databases:
         print(f"Submitting backup for {db}...", flush=True)
-        cmd_utils.submit_backup(conn, db, stamp)
+        if cmd_utils.submit_backup(conn, db, stamp):
+            pending.append(db)
 
-    for db in databases:
+    for db in pending:
         print(f"Polling {db}...", flush=True)
         cmd_utils.poll_backup(conn, db, stamp)
         print(f"{db} FINISHED.", flush=True)
